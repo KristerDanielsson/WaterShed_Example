@@ -1,0 +1,301 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="Watershed" Id="{68aab67d-8dd2-4dbe-9739-4720453e68ea}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK Watershed 
+VAR_INPUT
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	//Camera or file source
+	hr: HRESULT;
+	fbCamera: FB_VN_SimpleCameraControl;
+	eState: ETcVnCameraState;
+
+//Images for realtime work
+	ipImageIn: ITcVnImage;
+	ipImageGrey: ITcVnImage;
+	ipImageBinary: ITcVnImage;
+	ipMarkersImage: ITcVnImage;
+	ipSingleMarkerBinaryImage: ITcVnImage;
+	ipSureBackground: ITcVnImage;
+	ipSureForeground: ITcVnImage;
+	ipUnknown: ITcVnImage;
+	ipValue_1_Image	: ITcVnImage;
+	ipWatershed: ITcVnImage;
+	
+	//Structure element
+		ipElement: ITcVnImage;
+		nWidthHeight: UDINT:= 9; //Same variable used for both Width and height
+
+//Otsu binary
+	ETcVnThresholdType: ETcVnThresholdType :=TCVN_TT_OTSU_BINARY;
+
+//Displayable images (for ADS Image watch and TwinCAT HMI
+	ipImageInDisp: ITcVnDisplayableImage;
+	ipImageGreyDisp:	ITcVnDisplayableImage;	
+	ipImageBinaryDisp: ITcVnDisplayableImage;
+	ipMarkersImageDisp:		ITcVnDisplayableImage;
+	ipSureBackgroundDisp:		ITcVnDisplayableImage;
+	ipSureforegroundDisp:		ITcVnDisplayableImage;
+	ipDistanceTransformDisp:		ITcVnDisplayableImage;
+	ipUnknownDisp:		ITcVnDisplayableImage;
+	ipWatershedDisp:		ITcVnDisplayableImage;
+	
+	
+	fThreshold: LREAL:=59;
+	
+	//Find Contours
+	 aOffset :   TcVnPoint   :=  [0, 0];
+	 eLineType:     ETcVnLineType;
+	 
+	//Containers, used to hold individual contours or  lists of contours	
+	ipContour:		ITcVnContainer;
+	ipContours: 	ITCVnContainer;
+	ipSingleContour:		ITcVnContainer; 	
+
+	ipIteratorContour: 	ITcVnForwardIterator;
+	ipIteratorContours: 	ITcVnForwardIterator;
+	ipIteratorSingleContour: ITcVnForwardIterator;
+	
+	
+	
+	//Colour to draw in images
+	aColor_red:		TcVnVector4_LREAL:= [255,0,0];
+	
+	//Draw
+	aCenter:		TcVnPoint2_LREAL;
+	sText: STRING;
+	aColorRed	: TcVnVector4_LREAL:= [255,0,0,0];
+	
+	//Markers from F_VN_ConnectedComponents
+	nLabels: DINT;
+	
+	n: INT;
+	aMaxValue: TcVnVector4_LREAL;
+	
+	aPosition: TcVnPoint2_DINT;
+	
+	ipDistanceTransform: ITcVnImage;
+	eVectorCompareMethod: ETcVnVectorCompareMethod;
+	
+	//
+	aValue: TcVnVector4_LREAL:=[1.0,0.0,0.0,0.0]; //Add 1 to the single channel image.
+	
+	nWidth: UDINT;
+	nHeight: UDINT;
+	//Monitoring
+	hrWD: DINT;
+	nFunctionsMonitored: ULINT;
+	nFraction: UDINT;
+	tRest: DINT;
+	tRestPrevious: DINT;
+	tStop: DINT:= 50000;
+	
+	stImageInfoGrey: TcVnImageInfo;
+	stImageInfoWatershed: TcVnImageInfo;
+	stMarkersLabel: TcVnImageInfo;
+	eApproximationMethod: ETcVnContourApproximationMethod;
+	numberOfElements: ULINT;
+	numberOfElements2: ULINT;
+	
+aMaxValueMarker: TcVnVector4_LREAL;	
+	Currentmarker: ULINT;
+	markerColor:		TcVnVector4_LREAL;
+	markerColorCurrent:		TcVnVector4_LREAL;
+		
+		nisse: LREAL;
+		
+	nisse2: ULINT;
+	aElement: TcVnPoint2_LREAL;
+	nisse3: ULINT;
+minGUID: GUID;
+minGUID2: GUID;
+	nTemp01: LREAL;
+	nTemp02: ULINT;
+	
+	//Export and visualize points
+	  aArray      :   ARRAY [0..49] OF TcVnPoint2_LREAL;
+    ipContainer :   ITcVnContainer;
+    nBufferSize :   ULINT;
+	
+
+	Villkor: BOOL;
+	
+	              nContours                           : ULINT;
+END_VAR
+
+
+
+
+
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+//https://www.geeksforgeeks.org/image-segmentation-with-watershed-algorithm-opencv-python/
+
+eState:= fbCamera.GetState();
+
+IF eState = TCVN_CS_ERROR THEN
+	hr:= fbCamera.Reset();
+	
+ELSIF eState<TCVN_CS_ACQUIRING THEN
+	hr:= fbCamera.StartAcquisition();
+	
+ELSIF eState= TCVN_CS_ACQUIRING THEN
+	
+	//Get the image from camera. Or in this case a file source
+	// Step 1 - Import image
+	hr:= fbCamera.GetCurrentImage(ipImageIn);
+	
+	IF SUCCEEDED(hr) AND ipImageIn <> 0 THEN
+//Step 2 - Preprocessing - Greyscale the image and possible filtering		
+hr:= F_VN_ConvertColorSpace(ipImageIn, ipImageGrey, TCVN_CST_RGB_TO_GRAY, hr);
+
+//Step 3- Threshold image to get a binary image
+ hr := F_VN_Threshold(
+    ipSrcImage      :=  ipImageGrey,
+    ipDestImage     :=  ipImageBinary,
+    fThreshold      :=  fThreshold, // If otsu is used as in this case. The value here is automatically set.
+    fMaxValue       :=  255, // max value of 8-bit image: (2^8)-1=255
+    eThresholdType  :=  ETcVnThresholdType,
+    hrPrev          :=  hr
+);
+
+// STEP 4 - Noise removal by Morphological operators. More here --- https://pyimagesearch.com/2021/04/28/opencv-morphological-operations/
+hr := F_VN_FillHoles(
+    ipSrcImage      :=  ipImageBinary,
+    ipDestImage     :=  ipImageBinary,
+    hrPrev          :=  hr
+);
+
+		hr := F_VN_CreateStructuringElement(
+			ipStructuringElement    :=  ipElement,
+			eShape                  :=  TCVN_SES_RECTANGLE,
+			nWidth                  :=  nWidthHeight,
+			nHeight                 :=  nWidthHeight,
+			hrPrev                  :=  hr );
+
+		hr := F_VN_MorphologicalOperator(
+			ipSrcImage  :=  ipImageBinary,
+			ipDestImage :=  ipImageBinary,
+			eOperator   :=  TCVN_MO_OPENING,
+			ipStructuringElement  :=  ipElement,
+			hrPrev      :=  hr
+		);
+
+//Step 5: Grasping the black background AND foreground OF the image
+
+//STEP 5.1 sure background with "dilation" (morphological operator)
+			hr := F_VN_MorphologicalOperator(
+			ipSrcImage  :=  ipImageBinary,
+			ipDestImage :=  ipSureBackground,
+			eOperator   :=  TCVN_MO_DILATION,
+			ipStructuringElement  :=  ipElement,
+			hrPrev      :=  hr
+		);
+
+//STEP 5.2 distance Transform. To find the longest distance to the background (black pixel) for every pixel.
+hr := F_VN_DistanceTransformation(
+    ipSrcImage      :=  ipImageBinary,
+    ipDestImage     :=  ipDistanceTransform,
+    eDistanceType   :=  TCVN_DT_C, 
+    eMaskSize       :=  TCVN_DTM_3,
+    hr);	
+
+// STEP 5.3 - Find out what is sure to be foreground
+hr:=F_VN_MaxPixelValue(ipDistanceTransform, aMaxValue, aPosition, hr);
+
+
+hr := F_VN_Threshold(
+    ipSrcImage      :=  ipDistanceTransform,
+    ipDestImage     :=  ipSureForeground,
+    fThreshold      :=  aMaxValue[0]*0.5, // half value range: (2^8)/2=128
+    fMaxValue       :=  255, // max value of 8-bit image: (2^8)-1=255
+    eThresholdType  :=  TCVN_TT_BINARY,
+    hrPrev          :=  hr
+);
+
+//Convert to USINT since the multiplication above creates a REAL-pixel image. TwinCAT Image view requires USINT
+hr := F_VN_ConvertElementType(ipSureForeground, ipSureForeground, TCVN_ET_USINT, hr); 
+
+// STEP 5.4 - Subtract sure background from foregrund to get the unknown region that could be either one or the other.
+hr:=F_VN_SubtractImages(ipSureBackground,ipSureForeground, ipUnknown, hr);
+
+//STEP 6.1 Create the labels on the sure foreground fields. 1, 2, 3, ....n. 
+hr:=F_VN_ConnectedComponents(ipSureForeground, ipMarkersImage, nLabels, hr);
+
+//STEP 6.2 - To distinguish the background and foreground, the values in “markers” are incremented by 1.
+hr:=F_VN_GetImageWidth(ipImageIn,nWidth,hr);
+hr:=F_VN_GetImageHeight(ipImageIn,nHeight,hr);
+hr:= F_VN_CreateImageAndSetPixels(ipValue_1_Image,nWidth, nHeight,TCVN_ET_DINT, 1, aValue, hr);
+hr:=F_VN_AddImages(ipMarkersImage, ipValue_1_Image, ipMarkersImage, hr);
+
+//STEP 6.3- Label unknown region with 0 in ipMarkersImage
+hr:= F_VN_BitwiseNotImage(ipUnknown,ipUnknown, hr);
+hr := F_VN_ConvertElementType(ipUnknown, ipUnknown, TCVN_ET_DINT, hr); 
+hr:= F_VN_BitwiseAndImages(ipMarkersImage,ipUnknown,ipMarkersImage, hr);
+
+//Get image data have a look if it is DINT or USINT
+F_VN_GetImageInfo(ipImageGrey, stImageInfoGrey,hr);
+F_VN_GetImageInfo(ipWatershed, stImageInfoWatershed,hr);
+F_VN_GetImageInfo(ipMarkersImage, stMarkersLabel,hr);
+
+//	7.1 Apply watershed Algorithm to markers	
+hr:= F_VN_WatershedSegmentationExp(ipImageIn,ipWatershed, ipMarkersImage,hr);
+
+//7.3 Loop and iterate over the markers. First found contour for the specific marker area is appended to a list of contours. 
+hr:=F_VN_MaxPixelValue(ipWatershed, aMaxValueMarker, aPosition, hr);
+
+hr:= F_VN_CreateContainer(ipContours, ContainerType_Vector_Vector_TcVnPoint2_DINT,0, hr);
+		hr:= F_VN_ReserveContainerMemory(ipContours, 100, hr);  //Only for performance reasons
+
+	hr := F_VN_GetForwardIterator(ipContours, ipIteratorContours, hr);
+
+		FOR Currentmarker:=2 TO  LREAL_TO_ULINT(aMaxValueMarker[0]) DO //
+			
+			markerColor[0]:= ULINT_TO_LREAL(Currentmarker);
+
+			hr:= F_VN_CheckColorRange(ipWatershed, ipSingleMarkerBinaryImage,markerColor,markerColor,hr); //make binary with only one marker area
+			hr := F_VN_FindContours(ipSrcImage  :=  ipSingleMarkerBinaryImage,ipContours := ipContour,hrPrev:= hr);
+	                            
+			
+			// Get one contour for the specific marker
+			hr:=F_VN_GetAt_ITcVnContainer(ipContour,ipSingleContour, 0, hr);
+			
+			// Populate ipContours with the corrently retrieved contour from the specific marker
+			hr:=F_VN_InsertIntoContainer_ITcVnContainer(ipSingleContour,ipContours,Currentmarker-2, hr);
+			
+		END_FOR
+
+			//Draw
+				hr:= F_VN_DrawContours(ipContours, -1, ipImageIn, aColorRed, 1, hr);
+                hr := F_VN_GetNumberOfElements(ipContours, nContours, hr);
+                sText := CONCAT('Contours: ', TO_STRING(nContours));
+                hr := F_VN_PutText(sText, ipImageIn, 5, 30, TCVN_FT_HERSHEY_SIMPLEX, 1, aColorRed, hr);
+		
+////Convert to USINT see image in Image Watch
+hr := F_VN_ConvertElementType(ipWatershed, ipWatershed, TCVN_ET_USINT, hr); 
+hr := F_VN_ConvertElementType(ipMarkersImage, ipMarkersImage, TCVN_ET_USINT, hr);
+hr := F_VN_ConvertElementType(ipUnknown, ipUnknown, TCVN_ET_USINT, hr);
+hr := F_VN_ConvertElementType(ipDistanceTransform, ipDistanceTransform, TCVN_ET_USINT, hr);
+	
+//		//Create images to display for the different processing steps
+		hr:= F_VN_CopyIntoDisplayableImage(ipImageIn, ipImageInDisp, hr); 
+		hr:= F_VN_CopyIntoDisplayableImage(ipImageGrey, ipImageGreyDisp, hr);  
+		hr:= F_VN_CopyIntoDisplayableImage(ipImageBinary, ipImageBinaryDisp, hr);  
+		hr:= F_VN_CopyIntoDisplayableImage(ipSureBackground, ipSureBackgroundDisp, hr);  
+		hr:= F_VN_CopyIntoDisplayableImage(ipSureForeground, ipSureForegroundDisp, hr);  
+		hr:= F_VN_CopyIntoDisplayableImage(ipMarkersImage, ipMarkersImageDisp, hr);  
+		hr:= F_VN_CopyIntoDisplayableImage(ipDistanceTransform, ipDistanceTransformDisp, hr);  
+		hr:= F_VN_CopyIntoDisplayableImage(ipUnknown, ipUnknownDisp, hr);  
+		hr:= F_VN_CopyIntoDisplayableImage(ipWatershed, ipWatershedDisp, hr);
+		
+	END_IF
+
+END_IF
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>
