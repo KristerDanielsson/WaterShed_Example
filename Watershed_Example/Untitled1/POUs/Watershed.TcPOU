@@ -54,6 +54,8 @@ VAR
 	ipContours: 	ITCVnContainer;
 	ipSingleContour:		ITcVnContainer; 	
 
+
+//Iterators
 	ipIteratorContour: 	ITcVnForwardIterator;
 	ipIteratorContours: 	ITcVnForwardIterator;
 	ipIteratorSingleContour: ITcVnForwardIterator;
@@ -274,6 +276,8 @@ hr:= F_VN_CreateContainer(ipContours, ContainerType_Vector_Vector_TcVnPoint2_DIN
                 hr := F_VN_GetNumberOfElements(ipContours, nContours, hr);
                 sText := CONCAT('Contours: ', TO_STRING(nContours));
                 hr := F_VN_PutText(sText, ipImageIn, 5, 30, TCVN_FT_HERSHEY_SIMPLEX, 1, aColorRed, hr);
+
+				GeometricData();
 		
 ////Convert to USINT see image in Image Watch
 hr := F_VN_ConvertElementType(ipWatershed, ipWatershed, TCVN_ET_USINT, hr); 
@@ -297,5 +301,25 @@ hr := F_VN_ConvertElementType(ipDistanceTransform, ipDistanceTransform, TCVN_ET_
 END_IF
 ]]></ST>
     </Implementation>
+    <Method Name="GeometricData" Id="{5f6856ea-2eb4-418c-9310-7081b8504a7c}">
+      <Declaration><![CDATA[METHOD GeometricData : BOOL
+VAR_INPUT
+
+END_VAR
+
+VAR
+	stOrientation: TcVnRotatedRectangle;
+		ipSingleContour2:		ITcVnContainer;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//hr:=F_VN_FillContours(ipContours, 2, ipImageIn, aColorRed, hr);
+
+// Get one contour for the specific marker
+			hr:=F_VN_GetAt_ITcVnContainer(ipContour,ipSingleContour2, 0, hr);
+hr:= F_VN_ContourOrientation(ipSingleContour2, stOrientation, hr);
+
+]]></ST>
+      </Implementation>
+    </Method>
   </POU>
 </TcPlcObject>
