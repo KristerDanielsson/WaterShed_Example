@@ -42,89 +42,51 @@ VAR
 	ipUnknownDisp:		ITcVnDisplayableImage;
 	ipWatershedDisp:		ITcVnDisplayableImage;
 	
-	
+//Step 3	
 	fThreshold: LREAL:=59;
 	
-	//Find Contours
-	 aOffset :   TcVnPoint   :=  [0, 0];
-	 eLineType:     ETcVnLineType;
-	 
 	//Containers, used to hold individual contours or  lists of contours	
 	ipContour:		ITcVnContainer;
 	ipContours: 	ITCVnContainer;
 	ipSingleContour:		ITcVnContainer; 	
 
-
 //Iterators
-	ipIteratorContour: 	ITcVnForwardIterator;
 	ipIteratorContours: 	ITcVnForwardIterator;
-	ipIteratorSingleContour: ITcVnForwardIterator;
+
 	
-	
-	
-	//Colour to draw in images
-	aColor_red:		TcVnVector4_LREAL:= [255,0,0];
-	
+
 	//Draw
-	aCenter:		TcVnPoint2_LREAL;
 	sText: STRING;
 	aColorRed	: TcVnVector4_LREAL:= [255,0,0,0];
-	
+	aColorBlue	: TcVnVector4_LREAL:= [0,0,255,0];
+
 	//Markers from F_VN_ConnectedComponents
 	nLabels: DINT;
 	
-	n: INT;
 	aMaxValue: TcVnVector4_LREAL;
 	
 	aPosition: TcVnPoint2_DINT;
-	
 	ipDistanceTransform: ITcVnImage;
-	eVectorCompareMethod: ETcVnVectorCompareMethod;
+
 	
-	//
-	aValue: TcVnVector4_LREAL:=[1.0,0.0,0.0,0.0]; //Add 1 to the single channel image.
-	
+	//STEP 6.2 
+	aValue: TcVnVector4_LREAL:=[1.0,0.0,0.0,0.0]; //Add 1 to the single channel image.	
 	nWidth: UDINT;
 	nHeight: UDINT;
-	//Monitoring
-	hrWD: DINT;
-	nFunctionsMonitored: ULINT;
-	nFraction: UDINT;
-	tRest: DINT;
-	tRestPrevious: DINT;
-	tStop: DINT:= 50000;
 	
 	stImageInfoGrey: TcVnImageInfo;
 	stImageInfoWatershed: TcVnImageInfo;
 	stMarkersLabel: TcVnImageInfo;
-	eApproximationMethod: ETcVnContourApproximationMethod;
-	numberOfElements: ULINT;
-	numberOfElements2: ULINT;
+
 	
 aMaxValueMarker: TcVnVector4_LREAL;	
 	Currentmarker: ULINT;
 	markerColor:		TcVnVector4_LREAL;
-	markerColorCurrent:		TcVnVector4_LREAL;
-		
-		nisse: LREAL;
-		
-	nisse2: ULINT;
-	aElement: TcVnPoint2_LREAL;
-	nisse3: ULINT;
-minGUID: GUID;
-minGUID2: GUID;
-	nTemp01: LREAL;
-	nTemp02: ULINT;
-	
-	//Export and visualize points
-	  aArray      :   ARRAY [0..49] OF TcVnPoint2_LREAL;
-    ipContainer :   ITcVnContainer;
-    nBufferSize :   ULINT;
-	
 
-	Villkor: BOOL;
-	
 	              nContours                           : ULINT;
+				  
+	rotatedRectangle: TcVnRotatedRectangle;			  
+	stEllipse: TcVnRotatedRectangle;			  
 END_VAR
 
 
@@ -135,6 +97,7 @@ END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[
+//I have used an article about watershedding that is based on python. See it here for explanations. The chapter numbers in the comments come from the article as well.
 //https://www.geeksforgeeks.org/image-segmentation-with-watershed-algorithm-opencv-python/
 
 eState:= fbCamera.GetState();
@@ -250,7 +213,7 @@ hr:= F_VN_WatershedSegmentationExp(ipImageIn,ipWatershed, ipMarkersImage,hr);
 //7.3 Loop and iterate over the markers. First found contour for the specific marker area is appended to a list of contours. 
 hr:=F_VN_MaxPixelValue(ipWatershed, aMaxValueMarker, aPosition, hr);
 
-hr:= F_VN_CreateContainer(ipContours, ContainerType_Vector_Vector_TcVnPoint2_DINT,0, hr);
+hr:= F_VN_CreateContainer(ipContours, ContainerType_Vector_Vector_TcVnPoint2_DINT,0, hr);  
 		hr:= F_VN_ReserveContainerMemory(ipContours, 100, hr);  //Only for performance reasons
 
 	hr := F_VN_GetForwardIterator(ipContours, ipIteratorContours, hr);
@@ -277,7 +240,7 @@ hr:= F_VN_CreateContainer(ipContours, ContainerType_Vector_Vector_TcVnPoint2_DIN
                 sText := CONCAT('Contours: ', TO_STRING(nContours));
                 hr := F_VN_PutText(sText, ipImageIn, 5, 30, TCVN_FT_HERSHEY_SIMPLEX, 1, aColorRed, hr);
 
-				GeometricData();
+				//GeometricData(rotatedRectangle, ipSingleContour, stEllipse);   //Method call optional.
 		
 ////Convert to USINT see image in Image Watch
 hr := F_VN_ConvertElementType(ipWatershed, ipWatershed, TCVN_ET_USINT, hr); 
@@ -286,8 +249,8 @@ hr := F_VN_ConvertElementType(ipUnknown, ipUnknown, TCVN_ET_USINT, hr);
 hr := F_VN_ConvertElementType(ipDistanceTransform, ipDistanceTransform, TCVN_ET_USINT, hr);
 	
 //		//Create images to display for the different processing steps
-		hr:= F_VN_CopyIntoDisplayableImage(ipImageIn, ipImageInDisp, hr); 
-		hr:= F_VN_CopyIntoDisplayableImage(ipImageGrey, ipImageGreyDisp, hr);  
+		hr:= F_VN_CopyIntoDisplayableImage(ipImageIn, ipImageInDisp, hr);
+		hr:= F_VN_CopyIntoDisplayableImage(ipImageGrey, ipImageGreyDisp, hr); 
 		hr:= F_VN_CopyIntoDisplayableImage(ipImageBinary, ipImageBinaryDisp, hr);  
 		hr:= F_VN_CopyIntoDisplayableImage(ipSureBackground, ipSureBackgroundDisp, hr);  
 		hr:= F_VN_CopyIntoDisplayableImage(ipSureForeground, ipSureForegroundDisp, hr);  
@@ -295,7 +258,6 @@ hr := F_VN_ConvertElementType(ipDistanceTransform, ipDistanceTransform, TCVN_ET_
 		hr:= F_VN_CopyIntoDisplayableImage(ipDistanceTransform, ipDistanceTransformDisp, hr);  
 		hr:= F_VN_CopyIntoDisplayableImage(ipUnknown, ipUnknownDisp, hr);  
 		hr:= F_VN_CopyIntoDisplayableImage(ipWatershed, ipWatershedDisp, hr);
-		
 	END_IF
 
 END_IF
@@ -304,21 +266,26 @@ END_IF
     <Method Name="GeometricData" Id="{5f6856ea-2eb4-418c-9310-7081b8504a7c}">
       <Declaration><![CDATA[METHOD GeometricData : BOOL
 VAR_INPUT
-
+		stOrientation: REFERENCE TO TcVnRotatedRectangle;
+		
+		ipSingleContour:	REFERENCE TO 	ITcVnContainer;
+		stEllipse: REFERENCE TO TcVnRotatedRectangle;
 END_VAR
-
-VAR
-	stOrientation: TcVnRotatedRectangle;
-		ipSingleContour2:		ITcVnContainer;
-END_VAR]]></Declaration>
+]]></Declaration>
       <Implementation>
         <ST><![CDATA[//hr:=F_VN_FillContours(ipContours, 2, ipImageIn, aColorRed, hr);
 
 // Get one contour for the specific marker
-			hr:=F_VN_GetAt_ITcVnContainer(ipContour,ipSingleContour2, 0, hr);
-hr:= F_VN_ContourOrientation(ipSingleContour2, stOrientation, hr);
+			hr:=F_VN_GetAt_ITcVnContainer(ipContours,ipSingleContour, 3, hr);
 
-]]></ST>
+			hr:= F_VN_ContourOrientation(ipSingleContour, stOrientation, hr);
+//Fit an Ellipse inside one coin. Use the data in "stEllipse" to coordinate for example a gripping arm
+			hr:=F_VN_FitEllipse(ipSingleContour, stEllipse, hr);
+			
+//Drawing	
+			F_VN_DrawRotatedRectangle(stOrientation,ipImageIn, aColorRed, 1, hr);
+			//F_VN_DrawRotatedRectangle(stEllipse,ipImageIn, aColorRed, 1, hr);
+			F_VN_DrawEllipse(stEllipse,ipImageIn, aColorBlue, 1, hr);]]></ST>
       </Implementation>
     </Method>
   </POU>
