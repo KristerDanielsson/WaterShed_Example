@@ -27,6 +27,9 @@
     <Compile Include="POUs\Watershed.TcPOU">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="POUs\WithoutWaterShed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="DUTs" />

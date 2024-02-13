@@ -4,10 +4,13 @@
     <Declaration><![CDATA[PROGRAM MAIN
 VAR
 		fbWatershed: Watershed();
+
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[fbWatershed();]]></ST>
+      <ST><![CDATA[fbWatershed();
+
+]]></ST>
     </Implementation>
   </POU>
 </TcPlcObject>

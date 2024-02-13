@@ -1126,7 +1126,7 @@
 	<ImageDatas>
 		<ImageData Id="1000">424d360300000000000036000000280000001000000010000000010018000000000000000000c40e0000c40e00000000000000000000554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3be1d7d1e1d7d1e1d7d1e1d7d1e1d7d1e1d7d1e1d7d1dfd6cfdfd6cfdfd6cfdfd6cfdfd6cfdfd6cfdfd6cf554f3b554f3be3dbd4e3dbd4554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3bdfd6cfdfd6cf554f3b554f3be3dbd4e3dbd4554f3bc1b39ac1b399c0b299bfb097beae94bbac90b8a88cb7a488554f3bdfd6cfdfd6cf554f3b554f3bece4dfece4df554f3bc6b9a3c6b8a2c5b7a0c4b59fc2b49bbfb197bdae92baaa8d554f3bdfd6cfdfd6cf554f3b554f3bece4dfece4df554f3bcbbfaacbbeaac9bda9c9bba5c6b8a2c3b59ec0b298bdae93554f3bdfd6cfdfd6cf554f3b554f3bece4dfece4df554f3bcfc6b1d0c4b1cec3afcdc1adcabea8c7baa5c4b69ec0b298554f3be1d7d1dfd6cf554f3b554f3beee6e1eee6e1554f3bd4cabad4cabad2c9b6d1c6b3cec3afcabfa9c8baa4c4b59e554f3be1d7d1dfd6cf554f3b554f3bf2ebe7f2ebe7554f3b554f3b554f3bd7cfbed4cbbad2c7b4cec2af554f3b554f3b554f3be3dbd4e1d7d1554f3b554f3bf2ebe7f2ebe7f5eeebf2ebe7554f3bdad4c4d8cfbfd4cabad0c6b3554f3be7ded9e3dbd4e3dbd4e1d7d1554f3b554f3bf5eeebf5eeebf5eeebf5eeeb554f3bded8cbdad3c4d7cdbdd2c8b6554f3bece4dfe3dbd4e3dbd4e1d7d1554f3b554f3bf5eeebf5eeeb554f3b554f3b554f3be1dbcfdcd6c7d8cfbfd3c9b8554f3b554f3b554f3be3dbd4e1d7d1554f3b554f3bf5eeebf7f0ed554f3be8e3dbe5e1d7e1dbcfddd5c8d8cfbfd3cab7cec4b0c9bda8554f3be3dbd4e1d7d1554f3b554f3bf5eeebf5eeeb554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3be3dbd4e1d7d1554f3b554f3bf5eeebf5eeebf5eeebf5eeebf5eeebf2ebe7f2ebe7eee6e1ece4dfece4dfece4dfe3dbd4e3dbd4e1d7d1554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b554f3b</ImageData>
 	</ImageDatas>
-	<Project ProjectGUID="{68C151D3-1681-4F82-A114-805FE9E4E2B2}" TargetNetId="10.43.2.68.1.1" Target64Bit="true" ShowHideConfigurations="#x6">
+	<Project ProjectGUID="{68C151D3-1681-4F82-A114-805FE9E4E2B2}" TargetNetId="10.43.2.68.1.1" Target64Bit="true" ShowHideConfigurations="#x2c7">
 		<System>
 			<Settings MaxCpus="4" NonWinCpus="2" RouterMemory="1073741824">
 				<Cpu/>
@@ -1136,10 +1136,10 @@
 				<IoIdleTask Affinity="#x00000004"/>
 			</Settings>
 			<Tasks>
-				<Task Id="2" Priority="20" CycleTime="200000" AmsPort="350" Affinity="#x00000008" AdtTasks="true">
+				<Task Id="2" Priority="20" CycleTime="200000" AmsPort="350" Affinity="#x00000008" DisableFpExceptions="true" AdtTasks="true">
 					<Name>PlcTask</Name>
 				</Task>
-				<Task Id="4" Priority="5" CycleTime="100000" AmsPort="351" Affinity="#x00000004" AdtTasks="true">
+				<Task Id="4" Priority="5" CycleTime="100000" AmsPort="351" Affinity="#x00000004" DisableFpExceptions="true" AdtTasks="true">
 					<Name>VnTask ImgAcq (FileSource1)</Name>
 				</Task>
 			</Tasks>
@@ -1204,7 +1204,7 @@
 			</JobPool>
 			<App VisionAppGUID="{DB07F17E-902F-4B5E-9D58-1B43C779A63F}">
 				<Name>Application1</Name>
-				<FileSource Id="1" VisionObjectGUID="{488BCF51-6CD3-4931-B4F2-7CF6FC65CB73}">
+				<FileSource Id="1" VisionObjectGUID="{EFAF70F1-A123-4B96-93CC-DE32C4BD9190}">
 					<Name>FileSource1</Name>
 					<Xml>
 						<TcSmExtensions>
@@ -1218,7 +1218,7 @@
 							</TcSmExtension>
 						</TcSmExtensions>
 					</Xml>
-					<Module Id="#x01010020" KeepUnrestoredLinks="2" ClassFactoryId="Beckhoff Automation GmbH|TcVision|4.0.4.6" TcSmClass="CTComVisionObjDef">
+					<Module Id="#x01010020" KeepUnrestoredLinks="2" ClassFactoryId="Beckhoff Automation GmbH|TcVision|4.0.4.8" TcSmClass="CTComVisionObjDef">
 						<Name>FileSource1 Image Acquisition (CTcIoFileImageAcquisition)</Name>
 						<ImageId>1000</ImageId>
 						<TmcDesc GUID="{BB647BE1-7AC0-46E5-AE93-462BDD16DE1F}" TcSmClass="CTComVisionObjDef">
@@ -1318,7 +1318,7 @@
 								</Value>
 								<Value>
 									<Name>CycleTime</Name>
-									<Value>8</Value>
+									<Value>10</Value>
 								</Value>
 								<Value>
 									<Name>TriggerMode</Name>
@@ -1326,7 +1326,7 @@
 								</Value>
 								<Value>
 									<Name>BaseDir</Name>
-									<String>C:\Users\Public\TcVision\FileSources\FWJ6C3NO</String>
+									<String>C:\Users\Public\TcVision\FileSources\4CMJQV0W</String>
 								</Value>
 								<Value>
 									<Name>ServiceTimeout</Name>
@@ -1345,7 +1345,7 @@
 							</InterfacePointerValues>
 						</TmcDesc>
 					</Module>
-					<Module Id="#x01010030" KeepUnrestoredLinks="2" ClassFactoryId="Beckhoff Automation GmbH|TcVision|4.0.4.6" TcSmClass="CTComVisionObjDef">
+					<Module Id="#x01010030" KeepUnrestoredLinks="2" ClassFactoryId="Beckhoff Automation GmbH|TcVision|4.0.4.8" TcSmClass="CTComVisionObjDef">
 						<Name>FileSource1 Image Provider (CTcVnFileImageProvider)</Name>
 						<ImageId>1000</ImageId>
 						<TmcDesc GUID="{CA3A2AC6-9655-406B-B405-BFDCFD83E1BC}" TcSmClass="CTComVisionObjDef">

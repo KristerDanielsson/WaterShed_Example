@@ -86,7 +86,11 @@ aMaxValueMarker: TcVnVector4_LREAL;
 	              nContours                           : ULINT;
 				  
 	rotatedRectangle: TcVnRotatedRectangle;			  
-	stEllipse: TcVnRotatedRectangle;			  
+	stEllipse: TcVnRotatedRectangle;	
+
+fbWithoutWaterShed:WithoutWaterShed();
+stImageInfo: TcVnImageInfo;
+		  
 END_VAR
 
 
@@ -99,6 +103,14 @@ END_VAR
       <ST><![CDATA[
 //I have used an article about watershedding that is based on python. See it here for explanations. The chapter numbers in the comments come from the article as well.
 //https://www.geeksforgeeks.org/image-segmentation-with-watershed-algorithm-opencv-python/
+
+
+//To do
+// 1. Under the FileSource1-folder. Press button "read from target" and then press "add images" 
+//and add the image mynt.bmp in the TwinCAT project tree under the folder ImageForExample
+//2. Watch the different images under the "ADS Image Watch"-window. 
+
+
 
 eState:= fbCamera.GetState();
 
@@ -150,6 +162,11 @@ hr := F_VN_FillHoles(
 			hrPrev      :=  hr
 		);
 
+		
+				// CAll WithoutWaterShed to show what happens without the watershed-function
+					fbWithoutWaterShed(ipImageBinary:=ipImageBinary, ipImageIn:=ipImageIn, hr:=hr);
+		
+		
 //Step 5: Grasping the black background AND foreground OF the image
 
 //STEP 5.1 sure background with "dilation" (morphological operator)

@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="WithoutWaterShed" Id="{ee7b138b-e7bd-4e0e-a0a9-74d181b47599}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK WithoutWaterShed 
+VAR_INPUT
+		ipImageBinary: REFERENCE TO ITcVnImage;
+		ipImageIn: REFERENCE TO ITcVnImage;
+		hr: 	REFERENCE TO HRESULT;
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+ipWithoutWatershed: ITcVnImage;
+
+//Displayable images (for ADS Image watch and TwinCAT HMI
+	ipWithoutWatershedDisp: ITcVnDisplayableImage;
+
+	
+//Step 3	
+	fThreshold: LREAL:=59;
+	
+	//Containers, used to hold individual contours or  lists of contours	
+	ipContours: 	ITCVnContainer;
+
+//Iterators
+	ipIteratorContours: 	ITcVnForwardIterator;
+
+	
+
+	//Draw
+	sText: STRING;
+	aColorRed	: TcVnVector4_LREAL:= [255,0,0,0];
+     nContours                           : ULINT;
+
+END_VAR
+
+
+
+
+
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+hr := F_VN_FindContours(ipSrcImage  :=  ipImageBinary,ipContours := ipContours,hrPrev:= hr);
+hr:= F_VN_CopyImage(ipImageIn, ipWithoutWatershed, hr);
+						//Draw
+				hr:= F_VN_DrawContours(ipContours, -1, ipWithoutWatershed, aColorRed, 1, hr);
+                hr := F_VN_GetNumberOfElements(ipContours, nContours, hr);
+                sText := CONCAT('Contours: ', TO_STRING(nContours));
+                hr := F_VN_PutText(sText, ipWithoutWatershed, 5, 30, TCVN_FT_HERSHEY_SIMPLEX, 1, aColorRed, hr);
+	
+//		//Create images to display for the different processing steps
+
+		hr:= F_VN_CopyIntoDisplayableImage(ipWithoutWatershed, ipWithoutWatershedDisp, hr);
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>
